@@ -1,11 +1,9 @@
 require("dotenv").config()
 
 const express = require('express')
-
+const sharp = require('sharp');
+const jwt = require('jsonwebtoken');
 const app = express();
-
-app.listen(3001);
-
 const aws = require('aws-sdk')
 const multer = require('multer')
 const multerS3 = require('multer-s3');
@@ -26,17 +24,25 @@ const upload = multer({
         acl: "public-read",
         bucket: BUCKET,
         key: function (req, file, cb) {
-            console.log(file);
-            cb(null,Date.now() + '.jpg',Date.now()+file.originalname)
+            const timestamp = Date.now();
+            const originalname = file.originalname;
+
+           const extension = originalname.split('.').pop();
+            const key = `${timestamp}_${originalname}`;
+
+            cb(null, key);
         }
     })
-})
+});
+ 
+  
 
 app.post('/upload', upload.single('file'), async function (req, res, next) {
-
     res.send('Successfully uploaded ' + req.file.location + ' location!')
-
 })
+
+
+
 
 app.get("/list", async (req, res) => {
 
@@ -46,11 +52,7 @@ app.get("/list", async (req, res) => {
 })
 
 
-app.get("/download/:filename", async (req, res) => {
-    const filename = req.params.filename
-    let x = await s3.getObject({ Bucket: BUCKET, Key: filename }).promise();
-    res.send(x.Body)
-})
+
 
 app.delete("/delete/:filename", async (req, res) => {
     const filename = req.params.filename
@@ -58,3 +60,10 @@ app.delete("/delete/:filename", async (req, res) => {
     res.send("File Deleted Successfully")
 
 })
+
+
+const PORT = 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
